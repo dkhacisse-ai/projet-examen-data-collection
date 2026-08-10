@@ -19,8 +19,16 @@ def get_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    chromium_path = shutil.which("chromium") or shutil.which("chromium-browser")
-    chromedriver_path = shutil.which("chromedriver")
+    import os
+
+    chromium_candidates = ["/usr/bin/chromium", "/usr/bin/chromium-browser"]
+    driver_candidates = ["/usr/bin/chromedriver", "/usr/lib/chromium/chromedriver", "/usr/lib/chromium-browser/chromedriver"]
+
+    chromium_path = shutil.which("chromium") or shutil.which("chromium-browser") or next((p for p in chromium_candidates if os.path.exists(p)), None)
+    chromedriver_path = shutil.which("chromedriver") or next((p for p in driver_candidates if os.path.exists(p)), None)
+
+    if not chromium_path or not chromedriver_path:
+        raise RuntimeError(f"Chromium introuvable (chromium={chromium_path}, driver={chromedriver_path})")
 
     options.binary_location = chromium_path
     service = Service(chromedriver_path)
