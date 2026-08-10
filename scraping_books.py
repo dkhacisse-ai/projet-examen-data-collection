@@ -11,28 +11,45 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import shutil
 from selenium.webdriver.chrome.service import Service
-
+import os
 
 def get_driver():
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-
-    import os
-
-    chromium_candidates = ["/usr/bin/chromium", "/usr/bin/chromium-browser"]
-    driver_candidates = ["/usr/bin/chromedriver", "/usr/lib/chromium/chromedriver", "/usr/lib/chromium-browser/chromedriver"]
-
-    chromium_path = shutil.which("chromium") or shutil.which("chromium-browser") or next((p for p in chromium_candidates if os.path.exists(p)), None)
-    chromedriver_path = shutil.which("chromedriver") or next((p for p in driver_candidates if os.path.exists(p)), None)
-
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-features=NetworkService")
+    options.add_argument("--window-size=1920x1080")
+    options.add_argument("--disable-features=VizDisplayCompositor")
+    
+    chromium_path = shutil.which("chromium") or shutil.which("chromium-browser") or shutil.which("google-chrome")
+    chromedriver_path = shutil.which("chromedriver")
+    
+    if not chromium_path:
+        for candidate in ["/usr/bin/chromium", "/usr/bin/chromium-browser", 
+                          "/usr/bin/google-chrome", "/usr/bin/chrome"]:
+            if os.path.exists(candidate):
+                chromium_path = candidate
+                break
+    
+    if not chromedriver_path:
+        for candidate in ["/usr/bin/chromedriver", "/usr/lib/chromium/chromedriver",
+                          "/usr/lib/chromium-browser/chromedriver"]:
+            if os.path.exists(candidate):
+                chromedriver_path = candidate
+                break
+    
     if not chromium_path or not chromedriver_path:
-        raise RuntimeError(f"Chromium introuvable (chromium={chromium_path}, driver={chromedriver_path})")
-
+        try:
+            from webdriver_manager.chrome import ChromeDriverManager
+            service = Service(ChromeDriverManager().install())
+            return webdriver.Chrome(service=service, options=options)
+        except Exception as e:
+            raise RuntimeError(f"Chromium introuvable. Erreur: {str(e)}")
+    
     options.binary_location = chromium_path
     service = Service(chromedriver_path)
-
     return webdriver.Chrome(service=service, options=options)
 
 def scraper_books(nb_pages: int = 50, progress_callback=None):
