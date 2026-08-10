@@ -9,6 +9,8 @@ import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+import shutil
+from selenium.webdriver.chrome.service import Service
 
 
 def get_driver():
@@ -16,8 +18,14 @@ def get_driver():
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    return webdriver.Chrome(options=options)
 
+    chromium_path = shutil.which("chromium") or shutil.which("chromium-browser")
+    chromedriver_path = shutil.which("chromedriver")
+
+    options.binary_location = chromium_path
+    service = Service(chromedriver_path)
+
+    return webdriver.Chrome(service=service, options=options)
 
 def scraper_books(nb_pages: int = 50, progress_callback=None):
     driver = get_driver()
