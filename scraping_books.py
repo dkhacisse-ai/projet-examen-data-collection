@@ -23,33 +23,18 @@ def get_driver():
     options.add_argument("--window-size=1920x1080")
     options.add_argument("--disable-features=VizDisplayCompositor")
     
-    chromium_path = shutil.which("chromium") or shutil.which("chromium-browser") or shutil.which("google-chrome")
-    chromedriver_path = shutil.which("chromedriver")
+    # Essayer Chromium système d'abord
+    chromium_path = "/usr/bin/chromium"
+    chromedriver_path = "/usr/bin/chromedriver"
     
-    if not chromium_path:
-        for candidate in ["/usr/bin/chromium", "/usr/bin/chromium-browser", 
-                          "/usr/bin/google-chrome", "/usr/bin/chrome"]:
-            if os.path.exists(candidate):
-                chromium_path = candidate
-                break
+    if os.path.exists(chromium_path) and os.path.exists(chromedriver_path):
+        options.binary_location = chromium_path
+        service = Service(chromedriver_path)
+        return webdriver.Chrome(service=service, options=options)
     
-    if not chromedriver_path:
-        for candidate in ["/usr/bin/chromedriver", "/usr/lib/chromium/chromedriver",
-                          "/usr/lib/chromium-browser/chromedriver"]:
-            if os.path.exists(candidate):
-                chromedriver_path = candidate
-                break
-    
-    if not chromium_path or not chromedriver_path:
-        try:
-            from webdriver_manager.chrome import ChromeDriverManager
-            service = Service(ChromeDriverManager().install())
-            return webdriver.Chrome(service=service, options=options)
-        except Exception as e:
-            raise RuntimeError(f"Chromium introuvable. Erreur: {str(e)}")
-    
-    options.binary_location = chromium_path
-    service = Service(chromedriver_path)
+    # Sinon fallback webdriver-manager
+    from webdriver_manager.chrome import ChromeDriverManager
+    service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=options)
 
 def scraper_books(nb_pages: int = 50, progress_callback=None):
